@@ -2,12 +2,13 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Морской Бой - Мультиплеер 15x15</title>
     <style>
         * {
             box-sizing: border-box;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -18,14 +19,14 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
         }
 
         .game-container {
             background: #1e3e48c9;
             backdrop-filter: blur(4px);
-            border-radius: 48px;
-            padding: 20px;
+            border-radius: 28px;
+            padding: 12px;
             box-shadow: 0 20px 35px rgba(0,0,0,0.5);
             border: 1px solid #50c8e0;
         }
@@ -34,47 +35,48 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 35px;
-            margin-bottom: 30px;
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
         .board-panel {
             background: #0b2b2f;
-            border-radius: 32px;
-            padding: 12px;
+            border-radius: 24px;
+            padding: 8px;
             box-shadow: 0 5px 0 #04171c;
         }
 
         .board-title {
             text-align: center;
-            font-size: 1.3rem;
+            font-size: 1rem;
             font-weight: bold;
             color: #c9f0ff;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .board {
             display: grid;
-            grid-template-columns: repeat(15, 32px);
-            grid-template-rows: repeat(15, 32px);
-            gap: 2px;
+            grid-template-columns: repeat(15, minmax(18px, 28px));
+            grid-template-rows: repeat(15, minmax(18px, 28px));
+            gap: 1px;
             background-color: #1c4a55;
-            padding: 8px;
-            border-radius: 18px;
+            padding: 5px;
+            border-radius: 14px;
         }
 
         .cell {
             background-color: #2e6c7c;
-            border-radius: 6px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 10px;
             font-weight: bold;
             cursor: pointer;
-            transition: 0.07s linear;
+            transition: 0.05s linear;
             box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
             color: white;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .cell.my-cell.ship-placed {
@@ -83,33 +85,32 @@
         }
         .cell.my-cell.ship-placed::after {
             content: "⚓";
-            font-size: 14px;
+            font-size: 8px;
         }
-        .cell.enemy-cell:hover:not(.disabled) {
+        .cell.enemy-cell:active:not(.disabled) {
+            transform: scale(0.95);
             background-color: #489eb3;
-            transform: scale(0.96);
-            cursor: pointer;
         }
         .cell.hit {
             background-color: #dc6b4a;
         }
         .cell.hit::after {
             content: "💥";
-            font-size: 14px;
+            font-size: 9px;
         }
         .cell.miss {
             background-color: #3b5f6b;
         }
         .cell.miss::after {
             content: "🌊";
-            font-size: 12px;
+            font-size: 8px;
         }
         .cell.destroyed {
             background-color: #6d2e2e;
         }
         .cell.destroyed::after {
             content: "🔥";
-            font-size: 14px;
+            font-size: 9px;
         }
         .cell.disabled {
             cursor: not-allowed;
@@ -118,10 +119,10 @@
 
         .auth-panel, .lobby-panel, .placement-panel {
             background: #0d323cee;
-            border-radius: 40px;
-            padding: 25px;
-            width: 650px;
-            max-width: 95vw;
+            border-radius: 32px;
+            padding: 20px;
+            width: 95vw;
+            max-width: 500px;
             margin: 0 auto;
             text-align: center;
             backdrop-filter: blur(8px);
@@ -129,19 +130,20 @@
         }
 
         input, button {
-            font-size: 1rem;
-            padding: 10px 18px;
-            margin: 8px;
-            border-radius: 80px;
+            font-size: 0.9rem;
+            padding: 10px 16px;
+            margin: 6px;
+            border-radius: 60px;
             border: none;
             outline: none;
             font-weight: bold;
+            -webkit-appearance: none;
         }
 
         input {
             background: #f0f9ff;
             color: #054a56;
-            width: 220px;
+            width: 200px;
             text-align: center;
         }
 
@@ -151,6 +153,7 @@
             cursor: pointer;
             transition: 0.1s;
             box-shadow: 0 3px 0 #b16220;
+            touch-action: manipulation;
         }
         button:active {
             transform: translateY(2px);
@@ -172,35 +175,35 @@
         }
         .info-text {
             background: #071e24;
-            padding: 12px;
-            border-radius: 60px;
+            padding: 10px;
+            border-radius: 40px;
             color: #bef2ff;
-            margin-top: 14px;
-            font-size: 0.85rem;
+            margin-top: 12px;
+            font-size: 0.75rem;
         }
         .fleet-status {
-            font-size: 0.85rem;
-            margin-top: 10px;
-            padding: 8px;
+            font-size: 0.75rem;
+            margin-top: 8px;
+            padding: 6px;
             background: #00000066;
             border-radius: 20px;
         }
         .current-ship {
-            font-size: 1rem;
-            margin-top: 8px;
-            padding: 8px;
+            font-size: 0.85rem;
+            margin-top: 6px;
+            padding: 6px;
             background: #ffc85733;
             border-radius: 20px;
             color: #ffd966;
             font-weight: bold;
         }
         .timer {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: bold;
             font-family: monospace;
             color: #ffd966;
             text-shadow: 0 0 5px #ff9900;
-            margin: 10px 0;
+            margin: 8px 0;
         }
         .status-badge {
             background: #000000aa;
@@ -208,17 +211,17 @@
             border-radius: 20px;
             margin: 5px;
             text-align: center;
-            font-size: 1.2rem;
+            font-size: 1rem;
         }
         .opponent-status {
-            font-size: 0.9rem;
-            margin-top: 10px;
+            font-size: 0.8rem;
+            margin-top: 8px;
             color: #aaffdd;
         }
         .flex-buttons {
             display: flex;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
         }
         form {
@@ -238,10 +241,37 @@
             0%, 100% { opacity: 0.3; }
             50% { opacity: 1; }
         }
-        @media (max-width: 1100px) {
-            .board { grid-template-columns: repeat(15, 24px); grid-template-rows: repeat(15, 24px); gap: 1px; }
-            .cell { font-size: 10px; }
-            .cell.ship-placed::after, .cell.hit::after { font-size: 10px; }
+        @media (max-width: 768px) {
+            .board {
+                grid-template-columns: repeat(15, minmax(16px, 22px));
+                grid-template-rows: repeat(15, minmax(16px, 22px));
+                gap: 1px;
+            }
+            .cell {
+                font-size: 8px;
+            }
+            .cell.my-cell.ship-placed::after,
+            .cell.hit::after,
+            .cell.miss::after,
+            .cell.destroyed::after {
+                font-size: 7px;
+            }
+            .board-title {
+                font-size: 0.85rem;
+            }
+            button, input {
+                font-size: 0.8rem;
+                padding: 8px 12px;
+            }
+        }
+        @media (max-width: 480px) {
+            .board {
+                grid-template-columns: repeat(15, minmax(14px, 20px));
+                grid-template-rows: repeat(15, minmax(14px, 20px));
+            }
+            .cell {
+                font-size: 7px;
+            }
         }
     </style>
 </head>
@@ -266,6 +296,9 @@
   const firebaseApp = initializeApp(firebaseConfig);
   const db = getDatabase(firebaseApp);
 
+  // LocalStorage keys
+  const STORAGE_KEY = "naval_battle_user";
+  
   let currentUser = null;
   let opponentNick = null;
   let myBoard = Array(15).fill().map(() => Array(15).fill(0));
@@ -282,7 +315,6 @@
   let gameStarted = false;
   let gameListenerRef = null;
   let inviteListenerRef = null;
-  let gameStatusCheckRef = null;
   
   let fleetToPlace = [
     { length: 4, count: 1, placed: 0, name: "Линкор", size: "4-палубный" },
@@ -290,6 +322,25 @@
     { length: 2, count: 3, placed: 0, name: "Эсминец", size: "2-палубный" },
     { length: 1, count: 3, placed: 0, name: "Катер", size: "1-палубный" }
   ];
+
+  // Сохранение логина/пароля
+  function saveUserCredentials(nickname, password) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ nickname, password }));
+  }
+
+  function loadUserCredentials() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+          try {
+              return JSON.parse(saved);
+          } catch(e) { return null; }
+      }
+      return null;
+  }
+
+  function clearUserCredentials() {
+      localStorage.removeItem(STORAGE_KEY);
+  }
 
   function getCurrentShipInfo() {
       for (let ship of fleetToPlace) {
@@ -310,11 +361,9 @@
       if (!currentShipDiv) return;
       const info = getCurrentShipInfo();
       if (info) {
-          currentShipDiv.innerHTML = `🎯 Сейчас ставим: ${info.name} (${info.size}) - осталось ${info.remaining} шт. ${currentShipHorizontal ? "➡️ Горизонтально" : "⬇️ Вертикально"}`;
+          currentShipDiv.innerHTML = `🎯 Сейчас: ${info.name} (${info.size}) осталось ${info.remaining} шт. ${currentShipHorizontal ? "➡️" : "⬇️"}`;
       } else if (allShipsPlaced()) {
-          currentShipDiv.innerHTML = "✅ Все корабли расставлены! Нажмите 'ГОТОВО'";
-      } else {
-          currentShipDiv.innerHTML = "🎉 Расстановка завершена!";
+          currentShipDiv.innerHTML = "✅ Все корабли готовы!";
       }
   }
 
@@ -375,6 +424,7 @@
               cell.dataset.col = j;
               if (placementMode && !allShipsPlaced()) {
                   cell.addEventListener('click', (e) => {
+                      e.stopPropagation();
                       const row = parseInt(cell.dataset.row);
                       const col = parseInt(cell.dataset.col);
                       const length = getCurrentShipLength();
@@ -393,11 +443,9 @@
                           if (allShipsPlaced()) {
                               const readyBtn = document.getElementById('readyBtn');
                               if (readyBtn) readyBtn.disabled = false;
-                              const statusDiv = document.getElementById('fleetStatus');
-                              if (statusDiv) statusDiv.innerHTML = "✅ Все корабли расставлены! Нажмите 'ГОТОВО'";
                           }
                       } else {
-                          alert("❌ Нельзя поставить корабль здесь (нужен отступ в 1 клетку)");
+                          alert("❌ Нельзя поставить корабль здесь");
                       }
                   });
               }
@@ -409,12 +457,13 @@
   function updateFleetUI() {
       const fleetDiv = document.getElementById('fleetStatus');
       if (!fleetDiv) return;
-      let text = "📋 Статус расстановки: ";
+      let text = "";
       for (let ship of fleetToPlace) {
           let left = ship.count - ship.placed;
           if (left > 0) text += `${ship.name} x${left}  `;
       }
       if (allShipsPlaced()) text = "✅ Все корабли готовы!";
+      else text = "📋 " + text;
       fleetDiv.innerText = text;
   }
 
@@ -431,9 +480,6 @@
               timeLeft--;
               const timerEl = document.getElementById('timer');
               if (timerEl) timerEl.innerText = `⏱️ ${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}`;
-              if (timeLeft === 30 && !allShipsPlaced()) {
-                  alert("⚠️ Осталось 30 секунд! Завершите расстановку и нажмите 'ГОТОВО'");
-              }
           }
       }, 1000);
   }
@@ -468,10 +514,9 @@
       const readyBtn = document.getElementById('readyBtn');
       if (readyBtn) {
           readyBtn.disabled = true;
-          readyBtn.innerHTML = "✅ ГОТОВО <span class='waiting-indicator'></span>";
+          readyBtn.innerHTML = "✅ ГОТОВО ⏳";
       }
       
-      // Слушаем готовность оппонента
       const readyRef = ref(db, `games/${gameId}/ready`);
       const unsubscribe = onValue(readyRef, (snapshot) => {
           const data = snapshot.val();
@@ -507,12 +552,12 @@
                       <div id="myGameBoard" class="board"></div>
                   </div>
                   <div class="board-panel">
-                      <div class="board-title">🎯 АТАКА (${opponentNick})</div>
+                      <div class="board-title">🎯 АТАКА: ${opponentNick}</div>
                       <div id="enemyBoardGrid" class="board"></div>
                   </div>
               </div>
               <div class="status-badge" id="turnStatus"></div>
-              <button id="exitGameBtn" class="danger-btn">🏠 Выйти в лобби</button>
+              <button id="exitGameBtn" class="danger-btn">🏠 Выйти</button>
           </div>
       `;
       renderMyGameBoard();
@@ -714,7 +759,7 @@
       const appDiv = document.getElementById('app');
       appDiv.innerHTML = `
           <div class="placement-panel">
-              <h2>⚓ РАССТАНОВКА КОРАБЛЕЙ</h2>
+              <h2>⚓ РАССТАНОВКА</h2>
               <div class="timer" id="timer">⏱️ 1:00</div>
               <div class="opponent-status">🎮 Противник: ${opponentNick}</div>
               <div class="fleet-status" id="fleetStatus"></div>
@@ -723,11 +768,10 @@
               <div class="flex-buttons">
                   <button id="rotateBtn" class="rotate-btn">🔄 Повернуть</button>
                   <button id="readyBtn" class="success-btn" disabled>✅ ГОТОВО</button>
-                  <button id="cancelGameBtn" class="danger-btn">❌ Отменить игру</button>
+                  <button id="cancelGameBtn" class="danger-btn">❌ Отмена</button>
               </div>
               <div class="info-text">
-                  💡 Корабли не должны касаться даже углами! Нажмите на клетку, чтобы поставить текущий корабль.<br>
-                  Используйте кнопку "Повернуть" для смены ориентации.
+                  💡 Нажми на клетку, чтобы поставить корабль. Корабли не должны касаться!
               </div>
           </div>
       `;
@@ -738,10 +782,25 @@
       document.getElementById('rotateBtn').onclick = () => {
           currentShipHorizontal = !currentShipHorizontal;
           updateCurrentShipDisplay();
-          alert(`Ориентация: ${currentShipHorizontal ? "Горизонтальная" : "Вертикальная"}`);
       };
       document.getElementById('readyBtn').onclick = () => markReady();
       document.getElementById('cancelGameBtn').onclick = () => cancelGame();
+  }
+
+  async function autoLogin() {
+      const saved = loadUserCredentials();
+      if (saved && saved.nickname && saved.password) {
+          const userRef = ref(db, `users/${saved.nickname}`);
+          const snapshot = await get(userRef);
+          if (snapshot.exists() && snapshot.val().password === saved.password) {
+              currentUser = { nickname: saved.nickname, password: saved.password };
+              renderLobby();
+              return true;
+          } else {
+              clearUserCredentials();
+          }
+      }
+      return false;
   }
 
   function renderAuth() {
@@ -752,11 +811,19 @@
               <form id="loginForm" onsubmit="return false;">
                   <div><input type="text" id="loginNick" placeholder="Никнейм" maxlength="20" autocomplete="username"></div>
                   <div><input type="password" id="loginPass" placeholder="Пароль" autocomplete="current-password"></div>
-                  <button type="button" id="loginBtn">🔐 Войти / Зарегистрироваться</button>
+                  <button type="button" id="loginBtn">🔐 Войти / Регистрация</button>
               </form>
               <div id="authStatus" class="info-text">Введите логин и пароль (мин 3 символа)</div>
           </div>
       `;
+      
+      // Автозаполнение из localStorage
+      const saved = loadUserCredentials();
+      if (saved) {
+          document.getElementById('loginNick').value = saved.nickname || '';
+          document.getElementById('loginPass').value = saved.password || '';
+      }
+      
       document.getElementById('loginBtn').onclick = async () => {
           const nick = document.getElementById('loginNick').value.trim();
           const pwd = document.getElementById('loginPass').value.trim();
@@ -769,6 +836,7 @@
           if (snapshot.exists()) {
               if (snapshot.val().password === pwd) {
                   currentUser = { nickname: nick, password: pwd };
+                  saveUserCredentials(nick, pwd);
                   renderLobby();
               } else {
                   document.getElementById('authStatus').innerText = "❌ Неверный пароль";
@@ -776,6 +844,7 @@
           } else {
               await set(userRef, { password: pwd, createdAt: Date.now() });
               currentUser = { nickname: nick, password: pwd };
+              saveUserCredentials(nick, pwd);
               renderLobby();
           }
       };
@@ -804,7 +873,7 @@
       document.getElementById('logoutBtn').onclick = () => {
           if (inviteListenerRef) inviteListenerRef();
           if (gameListenerRef) gameListenerRef();
-          if (gameStatusCheckRef) gameStatusCheckRef();
+          clearUserCredentials();
           currentUser = null;
           renderAuth();
       };
@@ -827,7 +896,13 @@
       });
   }
 
-  renderAuth();
+  // Запуск с авто-логином
+  (async () => {
+      const autoLogged = await autoLogin();
+      if (!autoLogged) {
+          renderAuth();
+      }
+  })();
 </script>
 </body>
 </html>
