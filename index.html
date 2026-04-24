@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Морской Бой - Мультиплеер 15x15</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(145deg, #0a2f3a 0%, #06212a 100%);
+            font-family: 'Segoe UI', 'Roboto', 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: #1e3e48c9;
+            backdrop-filter: blur(4px);
+            border-radius: 48px;
+            padding: 20px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.5);
+            border: 1px solid #50c8e0;
+        }
+
+        .panels {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 35px;
+            margin-bottom: 30px;
+        }
+
+        .board-panel {
+            background: #0b2b2f;
+            border-radius: 32px;
+            padding: 12px;
+            box-shadow: 0 5px 0 #04171c;
+        }
+
+        .board-title {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #c9f0ff;
+            margin-bottom: 12px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 32px);
+            grid-template-rows: repeat(15, 32px);
+            gap: 2px;
+            background-color: #1c4a55;
+            padding: 8px;
+            border-radius: 18px;
+        }
+
+        .cell {
+            background-color: #2e6c7c;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.07s linear;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+            color: white;
+        }
+
+        .cell.my-cell.ship-placed {
+            background-color: #2f8b6e;
+            position: relative;
+        }
+        .cell.my-cell.ship-placed::after {
+            content: "⚓";
+            font-size: 14px;
+        }
+        .cell.enemy-cell:hover:not(.disabled) {
+            background-color: #489eb3;
+            transform: scale(0.96);
+        }
+        .cell.hit {
+            background-color: #dc6b4a;
+        }
+        .cell.hit::after {
+            content: "💥";
+            font-size: 14px;
+        }
+        .cell.miss {
+            background-color: #3b5f6b;
+        }
+        .cell.miss::after {
+            content: "🌊";
+            font-size: 12px;
+        }
+        .cell.destroyed {
+            background-color: #6d2e2e;
+        }
+        .cell.destroyed::after {
+            content: "🔥";
+            font-size: 14px;
+        }
+        .cell.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .auth-panel, .lobby-panel, .placement-panel {
+            background: #0d323cee;
+            border-radius: 40px;
+            padding: 25px;
+            width: 500px;
+            margin: 0 auto;
+            text-align: center;
+            backdrop-filter: blur(8px);
+            border: 1px solid #92d9e8;
+        }
+
+        input, button {
+            font-size: 1rem;
+            padding: 10px 18px;
+            margin: 8px;
+            border-radius: 80px;
+            border: none;
+            outline: none;
+            font-weight: bold;
+        }
+
+        input {
+            background: #f0f9ff;
+            color: #054a56;
+            width: 200px;
+            text-align: center;
+        }
+
+        button {
+            background: #ffc857;
+            color: #1f4955;
+            cursor: pointer;
+            transition: 0.1s;
+            box-shadow: 0 3px 0 #b16220;
+        }
+        button:active {
+            transform: translateY(2px);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .danger-btn {
+            background: #d9675e;
+            color: white;
+            box-shadow: 0 3px 0 #88332b;
+        }
+        .success-btn {
+            background: #4caf50;
+            color: white;
+            box-shadow: 0 3px 0 #2e7d32;
+        }
+        .info-text {
+            background: #071e24;
+            padding: 12px;
+            border-radius: 60px;
+            color: #bef2ff;
+            margin-top: 14px;
+            font-size: 0.85rem;
+        }
+        .fleet-status {
+            font-size: 0.8rem;
+            margin-top: 10px;
+            padding: 8px;
+            background: #00000066;
+            border-radius: 20px;
+        }
+        .timer {
+            font-size: 1.8rem;
+            font-weight: bold;
+            font-family: monospace;
+            color: #ffd966;
+            text-shadow: 0 0 5px #ff9900;
+            margin: 10px 0;
+        }
+        .status-badge {
+            background: #000000aa;
+            padding: 8px;
+            border-radius: 20px;
+            margin: 5px;
+        }
+        @media (max-width: 1100px) {
+            .board { grid-template-columns: repeat(15, 24px); grid-template-rows: repeat(15, 24px); gap: 1px; }
+            .cell { font-size: 10px; }
+            .cell.ship-placed::after, .cell.hit::after { font-size: 10px; }
+        }
+    </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+  import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAKlb8rgKLj-FCBuqWWn481ojuGrAIo_C8",
+    authDomain: "navalwarfare-e3e7b.firebaseapp.com",
+    databaseURL: "https://navalwarfare-e3e7b-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "navalwarfare-e3e7b",
+    storageBucket: "navalwarfare-e3e7b.firebasestorage.app",
+    messagingSenderId: "759998208305",
+    appId: "1:759998208305:web:3ad036313b9e6e9ddbb810",
+    measurementId: "G-1216NNDQYE"
+  };
+
+  const firebaseApp = initializeApp(firebaseConfig);
+  const db = getDatabase(firebaseApp);
+
+  // ---------- ИГРОВЫЕ ПЕРЕМЕННЫЕ ----------
+  let currentUser = null;
+  let opponentNick = null;
+  let myBoard = Array(15).fill().map(() => Array(15).fill(0));
+  let enemyBoard = Array(15).fill().map(() => Array(15).fill(0));
+  let gameActive = false;
+  let myTurn = false;
+  let gameId = null;
+  let shipsPlaced = false;
+  let gameOver = false;
+  let placementMode = false;
+  let currentShipHorizontal = true;
+  let placementTimer = null;
+  let timerInterval = null;
+  let timeLeft = 60; // 60 секунд на расстановку
+  let bothReady = false;
+  let opponentReady = false;
+  let myReady = false;
+  
+  let fleetToPlace = [
+    { length: 4, count: 1, placed: 0, name: "Линкор (4)" },
+    { length: 3, count: 2, placed: 0, name: "Крейсер (3)" },
+    { length: 2, count: 3, placed: 0, name: "Эсминец (2)" },
+    { length: 1, count: 3, placed: 0, name: "Катер (1)" }
+  ];
+  
+  let inviteListenerRef = null;
+  let gameListenerRef = null;
+
+  function getCurrentShipLength() {
+      for (let ship of fleetToPlace) {
+          if (ship.placed < ship.count) return ship.length;
+      }
+      return 0;
+  }
+
+  function canPlaceShip(board, row, col, length, horizontal) {
+      if (horizontal) {
+          if (col + length > 15) return false;
+          for (let c = col; c < col + length; c++) {
+              if (board[row][c] !== 0) return false;
+              for (let dr = -1; dr <= 1; dr++) {
+                  for (let dc = -1; dc <= 1; dc++) {
+                      let nr = row + dr, nc = c + dc;
+                      if (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && board[nr][nc] === 1) return false;
+                  }
+              }
+          }
+      } else {
+          if (row + length > 15) return false;
+          for (let r = row; r < row + length; r++) {
+              if (board[r][col] !== 0) return false;
+              for (let dr = -1; dr <= 1; dr++) {
+                  for (let dc = -1; dc <= 1; dc++) {
+                      let nr = r + dr, nc = col + dc;
+                      if (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && board[nr][nc] === 1) return false;
+                  }
+              }
+          }
+      }
+      return true;
+  }
+
+  function placeShipOnBoard(board, row, col, length, horizontal) {
+      if (horizontal) {
+          for (let c = col; c < col + length; c++) board[row][c] = 1;
+      } else {
+          for (let r = row; r < row + length; r++) board[r][col] = 1;
+      }
+  }
+
+  function allShipsPlaced() {
+      return fleetToPlace.every(ship => ship.placed === ship.count);
+  }
+
+  function resetFleet() {
+      fleetToPlace.forEach(ship => ship.placed = 0);
+      myBoard = Array(15).fill().map(() => Array(15).fill(0));
+  }
+
+  function renderPlacementBoard() {
+      const container = document.getElementById('myBoardGrid');
+      if (!container) return;
+      container.innerHTML = '';
+      for (let i = 0; i < 15; i++) {
+          for (let j = 0; j < 15; j++) {
+              const cell = document.createElement('div');
+              cell.className = 'cell my-cell';
+              if (myBoard[i][j] === 1) cell.classList.add('ship-placed');
+              cell.dataset.row = i;
+              cell.dataset.col = j;
+              if (placementMode && !allShipsPlaced()) {
+                  cell.addEventListener('click', (e) => {
+                      const row = parseInt(cell.dataset.row);
+                      const col = parseInt(cell.dataset.col);
+                      const length = getCurrentShipLength();
+                      if (length === 0) return;
+                      if (canPlaceShip(myBoard, row, col, length, currentShipHorizontal)) {
+                          placeShipOnBoard(myBoard, row, col, length, currentShipHorizontal);
+                          for (let ship of fleetToPlace) {
+                              if (ship.placed < ship.count) {
+                                  ship.placed++;
+                                  break;
+                              }
+                          }
+                          renderPlacementBoard();
+                          updateFleetUI();
+                          if (allShipsPlaced()) {
+                              placementMode = false;
+                              shipsPlaced = true;
+                              document.getElementById('readyBtn').disabled = false;
+                              document.getElementById('fleetStatus').innerHTML = "✅ Все корабли расставлены! Нажмите 'Готово'";
+                          }
+                      } else {
+                          alert("❌ Нельзя поставить корабль здесь");
+                      }
+                  });
+              }
+              container.appendChild(cell);
+          }
+      }
+  }
+
+  function updateFleetUI() {
+      const fleetDiv = document.getElementById('fleetStatus');
+      if (!fleetDiv) return;
+      let text = "📋 Осталось: ";
+      for (let ship of fleetToPlace) {
+          let left = ship.count - ship.placed;
+          if (left > 0) text += `${ship.name} x${left}  `;
+      }
+      if (allShipsPlaced()) text = "✅ Все корабли готовы!";
+      else text += ` (текущий: ${getCurrentShipLength()} клетки)`;
+      fleetDiv.innerText = text;
+  }
+
+  function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+          if (timeLeft <= 0) {
+              clearInterval(timerInterval);
+              if (!allShipsPlaced()) {
+                  alert("⏰ Время вышло! Игра отменена.");
+                  cancelGame();
+              } else if (!myReady) {
+                  alert("⏰ Время вышло! Вы не нажали 'Готово'. Игра отменена.");
+                  cancelGame();
+              }
+          } else {
+              timeLeft--;
+              const timerEl = document.getElementById('timer');
+              if (timerEl) timerEl.innerText = `⏱️ ${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}`;
+              if (timeLeft === 30 && !bothReady) {
+                  alert("⚠️ Осталось 30 секунд! Завершите расстановку и нажмите 'Готово'");
+              }
+          }
+      }, 1000);
+  }
+
+  async function cancelGame() {
+      if (gameId) {
+          await set(ref(db, `games/${gameId}`), null);
+          await set(ref(db, `invites/${opponentNick}`), null);
+          await set(ref(db, `invites/${currentUser.nickname}`), null);
+      }
+      if (timerInterval) clearInterval(timerInterval);
+      alert("Игра отменена");
+      renderLobby();
+  }
+
+  async function markReady() {
+      if (!allShipsPlaced()) {
+          alert("Расставьте все корабли!");
+          return;
+      }
+      myReady = true;
+      await update(ref(db, `games/${gameId}/ready/${currentUser.nickname}`), true);
+      
+      // Сохраняем расстановку в БД
+      const boardData = {};
+      for (let i = 0; i < 15; i++) {
+          boardData[`row${i}`] = myBoard[i];
+      }
+      await set(ref(db, `games/${gameId}/boards/${currentUser.nickname}`), boardData);
+      
+      checkBothReady();
+  }
+
+  async function checkBothReady() {
+      const gameRef = ref(db, `games/${gameId}/ready`);
+      onValue(gameRef, async (snapshot) => {
+          const data = snapshot.val();
+          if (data && data[currentUser.nickname] && data[opponentNick]) {
+              bothReady = true;
+              if (timerInterval) clearInterval(timerInterval);
+              alert("Оба игрока готовы! Игра начинается!");
+              await startBattle();
+          }
+      }, { onlyOnce: true });
+  }
+
+  async function startBattle() {
+      gameActive = true;
+      myTurn = (Math.random() < 0.5);
+      renderGameBoard();
+      listenToGame();
+  }
+
+  function renderGameBoard() {
+      const appDiv = document.getElementById('app');
+      appDiv.innerHTML = `
+          <div class="game-container">
+              <div class="panels">
+                  <div class="board-panel">
+                      <div class="board-title">⚓ МОЯ ФЛОТИЛИЯ</div>
+                      <div id="myGameBoard" class="board"></div>
+                  </div>
+                  <div class="board-panel">
+                      <div class="board-title">🎯 АТАКА (враг)</div>
+                      <div id="enemyBoardGrid" class="board"></div>
+                  </div>
+              </div>
+              <div class="status-badge" id="turnStatus"></div>
+              <button id="exitGameBtn" class="danger-btn">🏠 Выйти в лобби</button>
+          </div>
+      `;
+      renderMyGameBoard();
+      renderEnemyBoard();
+      document.getElementById('exitGameBtn').onclick = () => location.reload();
+      updateTurnDisplay();
+  }
+
+  function renderMyGameBoard() {
+      const container = document.getElementById('myGameBoard');
+      if (!container) return;
+      container.innerHTML = '';
+      for (let i = 0; i < 15; i++) {
+          for (let j = 0; j < 15; j++) {
+              const cell = document.createElement('div');
+              cell.className = 'cell my-cell disabled';
+              if (myBoard[i][j] === 1) cell.classList.add('ship-placed');
+              if (myBoard[i][j] === 2) cell.classList.add('hit');
+              if (myBoard[i][j] === 3) cell.classList.add('destroyed');
+              container.appendChild(cell);
+          }
+      }
+  }
+
+  function renderEnemyBoard() {
+      const container = document.getElementById('enemyBoardGrid');
+      if (!container) return;
+      container.innerHTML = '';
+      for (let i = 0; i < 15; i++) {
+          for (let j = 0; j < 15; j++) {
+              const cell = document.createElement('div');
+              cell.className = 'cell enemy-cell';
+              if (enemyBoard[i][j] === 1) cell.classList.add('miss');
+              if (enemyBoard[i][j] === 2) cell.classList.add('hit');
+              if (enemyBoard[i][j] === 3) cell.classList.add('destroyed');
+              if (gameActive && myTurn && !gameOver && enemyBoard[i][j] === 0) {
+                  cell.addEventListener('click', () => makeAttack(i, j));
+              } else if (!myTurn || gameOver) {
+                  cell.classList.add('disabled');
+              }
+              container.appendChild(cell);
+          }
+      }
+  }
+
+  async function makeAttack(row, col) {
+      if (!myTurn || gameOver) return;
+      if (enemyBoard[row][col] !== 0) return;
+      
+      const opponentBoardRef = ref(db, `games/${gameId}/boards/${opponentNick}/row${row}`);
+      const snapshot = await get(opponentBoardRef);
+      if (snapshot.exists()) {
+          const rowData = snapshot.val();
+          const cellValue = rowData[col];
+          if (cellValue === 1) { // попадание
+              enemyBoard[row][col] = 2;
+              await update(ref(db, `games/${gameId}/shots/${currentUser.nickname}/${row}_${col}`), 2);
+              await checkShipDestroyed(row, col, opponentNick);
+              myTurn = false;
+              await set(ref(db, `games/${gameId}/turn`), opponentNick);
+          } else if (cellValue === 0) { // промах
+              enemyBoard[row][col] = 1;
+              await update(ref(db, `games/${gameId}/shots/${currentUser.nickname}/${row}_${col}`), 1);
+              myTurn = false;
+              await set(ref(db, `games/${gameId}/turn`), opponentNick);
+          }
+          renderEnemyBoard();
+          updateTurnDisplay();
+          await checkWin();
+      }
+  }
+
+  async function checkShipDestroyed(row, col, targetPlayer) {
+      // Упрощенная проверка окончания корабля
+      const boardRef = ref(db, `games/${gameId}/boards/${targetPlayer}`);
+      const snapshot = await get(boardRef);
+      if (snapshot.exists()) {
+          const boardData = snapshot.val();
+          let allSunk = true;
+          for (let i = 0; i < 15; i++) {
+              for (let j = 0; j < 15; j++) {
+                  if (boardData[`row${i}`][j] === 1) {
+                      allSunk = false;
+                      break;
+                  }
+              }
+          }
+          if (allSunk) {
+              alert(`🏆 Победа! ${currentUser.nickname} уничтожил все корабли!`);
+              gameOver = true;
+              await set(ref(db, `games/${gameId}/winner`), currentUser.nickname);
+          }
+      }
+  }
+
+  async function checkWin() {
+      const winnerRef = ref(db, `games/${gameId}/winner`);
+      onValue(winnerRef, (snapshot) => {
+          if (snapshot.exists() && !gameOver) {
+              gameOver = true;
+              alert(`🏆 Игра окончена! Победитель: ${snapshot.val()}`);
+              renderEnemyBoard();
+          }
+      }, { onlyOnce: true });
+  }
+
+  function updateTurnDisplay() {
+      const turnDiv = document.getElementById('turnStatus');
+      if (turnDiv) {
+          turnDiv.innerText = myTurn ? "🔥 ВАШ ХОД! 🔥" : "⏳ Ожидайте ход противника...";
+          turnDiv.style.color = myTurn ? "#ffcc00" : "#88ccff";
+      }
+  }
+
+  function listenToGame() {
+      if (gameListenerRef) gameListenerRef();
+      const turnRef = ref(db, `games/${gameId}/turn`);
+      gameListenerRef = onValue(turnRef, (snapshot) => {
+          if (snapshot.exists() && gameActive && !gameOver) {
+              const turnOwner = snapshot.val();
+              myTurn = (turnOwner === currentUser.nickname);
+              updateTurnDisplay();
+              renderEnemyBoard();
+          }
+      });
+      
+      const shotRef = ref(db, `games/${gameId}/shots/${opponentNick}`);
+      onValue(shotRef, (snapshot) => {
+          if (snapshot.exists() && gameActive) {
+              const shots = snapshot.val();
+              for (let coord in shots) {
+                  const [row, col] = coord.split('_').map(Number);
+                  if (shots[coord] === 2) {
+                      myBoard[row][col] = 2;
+                  } else if (shots[coord] === 1) {
+                      myBoard[row][col] = 2; // отмечаем как промах визуально
+                  }
+              }
+              renderMyGameBoard();
+          }
+      });
+  }
+
+  async function createGame(invitedNick) {
+      gameId = `game_${currentUser.nickname}_${invitedNick}_${Date.now()}`;
+      opponentNick = invitedNick;
+      await set(ref(db, `games/${gameId}`), {
+          player1: currentUser.nickname,
+          player2: invitedNick,
+          status: "placement",
+          turn: null,
+          ready: { [currentUser.nickname]: false, [invitedNick]: false },
+          createdAt: Date.now()
+      });
+      await set(ref(db, `invites/${invitedNick}`), {
+          from: currentUser.nickname,
+          gameId: gameId,
+          timestamp: Date.now()
+      });
+      startPlacementPhase();
+  }
+
+  async function acceptInvite(fromNick, inviteGameId) {
+      gameId = inviteGameId;
+      opponentNick = fromNick;
+      await update(ref(db, `games/${gameId}/ready/${currentUser.nickname}`), false);
+      await set(ref(db, `invites/${currentUser.nickname}`), null);
+      startPlacementPhase();
+  }
+
+  function startPlacementPhase() {
+      resetFleet();
+      myReady = false;
+      bothReady = false;
+      opponentReady = false;
+      shipsPlaced = false;
+      placementMode = true;
+      currentShipHorizontal = true;
+      timeLeft = 60;
+      
+      renderPlacementScreen();
+      startTimer();
+      
+      // Слушаем готовность оппонента
+      const readyRef = ref(db, `games/${gameId}/ready/${opponentNick}`);
+      onValue(readyRef, (snapshot) => {
+          if (snapshot.val() === true) {
+              opponentReady = true;
+              if (myReady && opponentReady) {
+                  if (timerInterval) clearInterval(timerInterval);
+                  startBattle();
+              }
+          }
+      });
+  }
+
+  function renderPlacementScreen() {
+      const appDiv = document.getElementById('app');
+      appDiv.innerHTML = `
+          <div class="placement-panel">
+              <h2>⚓ РАССТАНОВКА КОРАБЛЕЙ</h2>
+              <div class="timer" id="timer">⏱️ 1:00</div>
+              <div class="fleet-status" id="fleetStatus"></div>
+              <div class="board" id="myBoardGrid"></div>
+              <div class="flex-buttons">
+                  <button id="rotateBtn" class="rotate-btn">🔄 Повернуть</button>
+                  <button id="readyBtn" class="success-btn" disabled>✅ ГОТОВО</button>
+                  <button id="cancelGameBtn" class="danger-btn">❌ Отменить игру</button>
+              </div>
+              <div class="info-text">💰 Расставьте ${getCurrentShipLength()}-палубные корабли. Корабли не должны касаться даже углами!</div>
+          </div>
+      `;
+      renderPlacementBoard();
+      updateFleetUI();
+      
+      document.getElementById('rotateBtn').onclick = () => {
+          currentShipHorizontal = !currentShipHorizontal;
+          alert(`Ориентация: ${currentShipHorizontal ? "Горизонталь" : "Вертикаль"}`);
+      };
+      document.getElementById('readyBtn').onclick = () => markReady();
+      document.getElementById('cancelGameBtn').onclick = () => cancelGame();
+  }
+
+  // ========== АВТОРИЗАЦИЯ И ЛОББИ ==========
+  function renderAuth() {
+      const appDiv = document.getElementById('app');
+      appDiv.innerHTML = `
+          <div class="auth-panel">
+              <h2>⚓ МОРСКОЙ БОЙ ⚓</h2>
+              <div><input type="text" id="loginNick" placeholder="Никнейм" maxlength="20"></div>
+              <div><input type="password" id="loginPass" placeholder="Пароль"></div>
+              <button id="loginBtn">🔐 Войти / Зарегистрироваться</button>
+              <div id="authStatus" class="info-text">Введите логин и пароль (мин 3 символа)</div>
+          </div>
+      `;
+      document.getElementById('loginBtn').onclick = async () => {
+          const nick = document.getElementById('loginNick').value.trim();
+          const pwd = document.getElementById('loginPass').value.trim();
+          if (nick.length < 3 || pwd.length < 2) {
+              document.getElementById('authStatus').innerText = "❌ Ник (мин 3) и пароль (мин 2)";
+              return;
+          }
+          const userRef = ref(db, `users/${nick}`);
+          const snapshot = await get(userRef);
+          if (snapshot.exists()) {
+              if (snapshot.val().password === pwd) {
+                  currentUser = { nickname: nick, password: pwd };
+                  renderLobby();
+              } else {
+                  document.getElementById('authStatus').innerText = "❌ Неверный пароль";
+              }
+          } else {
+              await set(userRef, { password: pwd, createdAt: Date.now() });
+              currentUser = { nickname: nick, password: pwd };
+              renderLobby();
+          }
+      };
+  }
+
+  function renderLobby() {
+      const appDiv = document.getElementById('app');
+      appDiv.innerHTML = `
+          <div class="lobby-panel">
+              <h2>🏴‍☠️ Игровой порт</h2>
+              <div>👤 ${currentUser.nickname}</div>
+              <div><input type="text" id="inviteNick" placeholder="Ник противника"></div>
+              <button id="inviteBtn">📨 Пригласить</button>
+              <button id="logoutBtn" class="danger-btn">🚪 Выйти</button>
+              <div id="lobbyStatus" class="info-text">Введите ник и нажмите "Пригласить"</div>
+          </div>
+      `;
+      document.getElementById('inviteBtn').onclick = () => {
+          const target = document.getElementById('inviteNick').value.trim();
+          if (!target || target === currentUser.nickname) {
+              alert("Укажите корректный ник");
+              return;
+          }
+          createGame(target);
+      };
+      document.getElementById('logoutBtn').onclick = () => {
+          if (inviteListenerRef) inviteListenerRef();
+          currentUser = null;
+          renderAuth();
+      };
+      listenForInvites();
+  }
+
+  function listenForInvites() {
+      if (inviteListenerRef) inviteListenerRef();
+      const invitesRef = ref(db, `invites/${currentUser.nickname}`);
+      inviteListenerRef = onValue(invitesRef, (snapshot) => {
+          const data = snapshot.val();
+          if (data && data.from && data.gameId && !gameActive) {
+              if (confirm(`⚔️ ${data.from} приглашает вас на дуэль! Принять?`)) {
+                  acceptInvite(data.from, data.gameId);
+              } else {
+                  set(ref(db, `invites/${currentUser.nickname}`), null);
+              }
+          }
+      });
+  }
+
+  renderAuth();
+</script>
+</body>
+</html>
